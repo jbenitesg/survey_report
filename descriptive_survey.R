@@ -132,6 +132,9 @@ report_continuous <- function(data, group, variable, yvar, wt = NULL, fun = mean
     unlist() %>%
     as.vector()
   
+  data = data %>%
+    mutate_at(vars(!!yvar), ~ as.numeric(.x))
+  
   if (length(lev) > 0) {
     if (rlang::quo_is_null(wt)) {
       result = data %>%
@@ -139,13 +142,57 @@ report_continuous <- function(data, group, variable, yvar, wt = NULL, fun = mean
         summarise(
           result_yvar = fun(!!yvar)
           ) %>%
+        ungroup() %>%
         pivot_wider(
           id_cols = myvar,
           names_from = !!group,
           values_from = result_yvar
         ) %>%
         mutate_if(haven::is.labelled, ~ haven::as_factor(.x)) %>%
+        mutate_if(is.numeric, ~ as.character(round(.x, digits = 2))) %>%
+        ## Include label variable name
+        add_row(
+          myvar = sjlabelled::get_label(select(data, !!variable)) %>%
+            as.vector(),
+          .before = 1
+        ) %>%
+        mutate_all(as.character)
+    } else {
+      result = data %>%
+        group_by(myvar = !!variable, !!group) %>%
+        summarise(
+          result_yvar = fun(!!yvar, w = !!wt)
+          ) %>%
         ungroup() %>%
+        pivot_wider(
+          id_cols = myvar,
+          names_from = !!group,
+          values_from = result_yvar
+        ) %>%
+        mutate_if(haven::is.labelled, ~ haven::as_factor(.x)) %>%
+        mutate_if(is.numeric, ~ as.character(round(.x, digits = 2))) %>%
+        ## Include label variable name
+        add_row(
+          myvar = sjlabelled::get_label(select(data, !!variable)) %>%
+            as.vector(),
+          .before = 1
+        ) %>%
+        mutate_all(as.character)
+    }
+  } else {
+    if (rlang::quo_is_null(wt)) {
+      result = data %>%
+        group_by(myvar = !!variable, !!group) %>%
+        summarise(
+          result_yvar = fun(!!yvar)
+        ) %>%
+        ungroup() %>%
+        pivot_wider(
+          id_cols = myvar,
+          names_from = !!group,
+          values_from = result_yvar
+        ) %>%
+        mutate_if(haven::is.labelled, ~ haven::as_factor(.x)) %>%
         ## Include label variable name
         add_row(
           myvar = sjlabelled::get_label(select(data, !!variable)) %>%
@@ -160,53 +207,18 @@ report_continuous <- function(data, group, variable, yvar, wt = NULL, fun = mean
         summarise(
           result_yvar = fun(!!yvar, w = !!wt)
           ) %>%
+        ungroup() %>%
+        mutate(
+          myvar = sjlabelled::get_label(select(data, !!variable)) %>%
+            as.vector()
+        ) %>%
         pivot_wider(
           id_cols = myvar,
           names_from = !!group,
-          values_from = result_yvar
-        ) %>%
-        mutate_if(haven::is.labelled, ~ haven::as_factor(.x)) %>%
-        ungroup() %>%
-        ## Include label variable name
-        add_row(
-          myvar = sjlabelled::get_label(select(data, !!variable)) %>%
-            as.vector(),
-          .before = 1
+          values_from = !!variable
         ) %>%
         mutate_if(is.numeric, ~ as.character(round(.x, digits = 2))) %>%
         mutate_all(as.character)
-    }
-  } else {
-    if (rlang::quo_is_null(wt)) {
-      result = data %>%
-        group_by(!!group) %>%
-        summarise_at(vars(!!variable), ~ fun(.x, na.rm = TRUE)) %>%
-        ungroup() %>%
-        mutate(
-          myvar = sjlabelled::get_label(select(data, !!variable)) %>%
-            as.vector()
-        ) %>%
-        pivot_wider(
-          id_cols = myvar,
-          names_from = !!group,
-          values_from = !!variable
-        ) %>%
-        mutate_if(is.numeric, ~ as.character(round(.x, digits = 2)))
-    } else {
-      result = data %>%
-        group_by(!!group) %>%
-        summarise_at(vars(!!variable), ~ sum(.x * !!wt, na.rm = TRUE) / sum(!!wt, na.rm = TRUE)) %>%
-        ungroup() %>%
-        mutate(
-          myvar = sjlabelled::get_label(select(data, !!variable)) %>%
-            as.vector()
-        ) %>%
-        pivot_wider(
-          id_cols = myvar,
-          names_from = !!group,
-          values_from = !!variable
-        ) %>%
-        mutate_if(is.numeric, ~ as.character(round(.x, digits = 2)))
     }
   }
   return(result)
