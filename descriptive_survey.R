@@ -9,7 +9,7 @@ for (package in required_packages) {
   library(package, character.only = TRUE)
   }
 
-
+rm(required_packages, package)
 
 # Rename reg component
 rename_reg <- function(data, x, vars) {
@@ -81,7 +81,7 @@ report_summarise <- function(data, group, variable, wt = NULL) {
     } else {
       result = data %>%
         group_by(myvar = !!variable, !!group) %>%
-        summarise(n = sum(!!wt)) %>%
+        tally(wt = !!wt, name = "n") %>%
         group_by(!!group) %>%
         mutate(
           share = n / collapse::fsum(n),
@@ -105,7 +105,7 @@ report_summarise <- function(data, group, variable, wt = NULL) {
   } else {
     result = data %>%
       group_by(!!group) %>%
-      summarise_at(vars(!!variable), ~ collapse::fmean(.x, wt = !!wt)) %>%
+      summarise_at(vars(!!variable), ~ collapse::fmean(.x, w = !!wt)) %>%
       ungroup() %>%
       mutate(
         myvar = sjlabelled::get_label(select(data, !!variable)) %>%
