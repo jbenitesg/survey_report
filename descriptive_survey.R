@@ -73,6 +73,10 @@ report_summarise <- function(data, group, variable, wt = NULL) {
         mutate_if(haven::is.labelled, ~ haven::as_factor(.x)) %>%
         ## Include label variable name
         add_row(
+          myvar = '',
+          .before = 1
+        ) %>%
+        add_row(
           myvar = sjlabelled::get_label(select(data, !!variable)) %>%
             as.vector(),
           .before = 1
@@ -94,6 +98,10 @@ report_summarise <- function(data, group, variable, wt = NULL) {
           values_from = nlab
         ) %>%
         mutate_if(haven::is.labelled, ~ haven::as_factor(.x)) %>%
+        add_row(
+          myvar = '',
+          .before = 1
+        ) %>%
         ## Include label variable name
         add_row(
           myvar = sjlabelled::get_label(select(data, !!variable)) %>%
