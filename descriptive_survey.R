@@ -118,7 +118,8 @@ report_summarise <- function(data, group, variable, wt = NULL) {
         names_from = !!group,
         values_from = !!variable
       ) %>%
-      mutate_if(is.numeric, ~ as.character(round(.x, digits = 2)))
+      mutate_if(is.numeric, ~ as.character(round(.x, digits = 2)))%>%
+      add_row(myvar = NA, .after = nrow(.) )
   }
   return(result)
 }
